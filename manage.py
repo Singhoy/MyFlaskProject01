@@ -1,6 +1,6 @@
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
-from info import db, create_app
+from info import db, create_app, models
 
 # 创建app，并传入配置模式：dev/pro
 app = create_app('dev')
