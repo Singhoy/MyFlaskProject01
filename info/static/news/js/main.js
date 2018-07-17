@@ -100,9 +100,9 @@ $(function () {
         }
         $(this).addClass('active').siblings().removeClass('active');
         $(this).find('a')[0].click()
-    })
+    });
 
-    // TODO 登录表单提交
+    // 登录表单提交
     $(".login_form_con").submit(function (e) {
         e.preventDefault();
         var mobile = $(".login_form #mobile").val();
@@ -144,6 +144,22 @@ $(function () {
             })
     });
 
+    // 退出登录
+    $('#logout').click(() => {
+        // 点击以后退出
+        $.ajax({
+            url: "/passport/logout",
+            type: "post",
+            contentType: "application/json",
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            }
+        })
+            .done(res => {
+                // 刷新当前界面
+                location.reload()
+            })
+        });
 
     // 注册按钮点击
     $(".register_form_con").submit(function (e) {
