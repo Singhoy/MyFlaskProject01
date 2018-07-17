@@ -125,12 +125,12 @@ $(function () {
     // TODO 注册按钮点击
     $(".register_form_con").submit(function (e) {
         // 阻止默认提交操作
-        e.preventDefault()
+        e.preventDefault();
 
         // 取到用户输入的内容
-        var mobile = $("#register_mobile").val()
-        var smscode = $("#smscode").val()
-        var password = $("#register_password").val()
+        var mobile = $("#register_mobile").val();
+        var smscode = $("#smscode").val();
+        var password = $("#register_password").val();
 
         if (!mobile) {
             $("#register-mobile-err").show();
@@ -152,10 +152,30 @@ $(function () {
             return;
         }
 
-        // 发起注册请求
+        let params = {
+            "mobile": mobile,
+            "smscode": smscode,
+            "password": password
+        };
 
+        // 发起注册请求
+        $.ajax({
+            url: "/passport/register",
+            type: "post",
+            data: JSON.stringify(params),
+            contentType: "application/json"
+        })
+            .done(res => {
+                if (res.errno == 0) {
+                    // 刷新当前界面
+                    location.reload()
+                } else {
+                    $("#register-password-err").html(res.errmsg);
+                    $("#register-password-err").show()
+                }
+            })
     })
-})
+});
 
 var imageCodeId = "";
 
