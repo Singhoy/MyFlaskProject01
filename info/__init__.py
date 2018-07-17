@@ -39,13 +39,17 @@ def create_app(config_name):
 
     # 配置
     app.config.from_object(config[config_name])
+
     # mysql配置
     db.init_app(app)
+
     # redis配置
     global redis_store
     redis_store = StrictRedis(host=config[config_name].REDIS_HOST, port=config[config_name].REDIS_PORT)
+
     # 开启csrf保护
-    # CSRFProtect(app)
+    CSRFProtect(app)
+
     # 设置session保存位置
     Session(app)
 

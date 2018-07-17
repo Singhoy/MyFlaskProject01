@@ -104,9 +104,9 @@ $(function () {
 
     // TODO 登录表单提交
     $(".login_form_con").submit(function (e) {
-        e.preventDefault()
-        var mobile = $(".login_form #mobile").val()
-        var password = $(".login_form #password").val()
+        e.preventDefault();
+        var mobile = $(".login_form #mobile").val();
+        var password = $(".login_form #password").val();
 
         if (!mobile) {
             $("#login-mobile-err").show();
@@ -118,11 +118,31 @@ $(function () {
             return;
         }
 
+        let params = {
+            mobile,
+            password
+        };
+
         // 发起登录请求
-    })
+        $.ajax({
+            url: "/passport/login",
+            method: "post",
+            data: JSON.stringify(params),
+            contentType: "application/json"
+        })
+            .done(res => {
+                if (res.errno == 0) {
+                    // 刷新当前界面
+                    location.reload()
+                } else {
+                    $("#login-password-err").html(res.errmsg);
+                    $("#login-password-err").show()
+                }
+            })
+    });
 
 
-    // TODO 注册按钮点击
+    // 注册按钮点击
     $(".register_form_con").submit(function (e) {
         // 阻止默认提交操作
         e.preventDefault();
@@ -153,9 +173,9 @@ $(function () {
         }
 
         let params = {
-            "mobile": mobile,
-            "smscode": smscode,
-            "password": password
+            mobile,
+            smscode,
+            password
         };
 
         // 发起注册请求
