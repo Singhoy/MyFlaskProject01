@@ -1,5 +1,5 @@
 from info import constants
-from info.models import User, News
+from info.models import User, News, Category
 from . import index_blu
 from flask import render_template, current_app, session
 
@@ -28,9 +28,24 @@ def index():
     for news in news_list if news_list else []:
         click_news_list.append(news.to_basic_dict())
 
+    # 获取新闻分类数据
+    categories = Category.query.all()
+    # print(type(categories))   # <class 'list'>
+
+    # 定义列表保存分类数据
+    categories_dicts = []
+
+    for category in enumerate(categories):
+        # print(type(category))   # <class 'tuple'>
+        # 拼接内容
+        a, b = category  # category是一个元组
+        # print(b.to_dict())  # b是class 'info.models.Category'
+        categories_dicts.append(b.to_dict())
+
     data = {
         "user_info": user.to_dict() if user else None,
-        "click_news_list": click_news_list
+        "click_news_list": click_news_list,
+        "categories": categories_dicts
     }
 
     return render_template('news/index.html', data=data)
