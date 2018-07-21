@@ -18,7 +18,7 @@ def get_news_list():
 
     # 1. 获取参数
     args_dict = request.args
-    page = args_dict.get("p", '1')
+    page = args_dict.get("page", '1')
     per_page = args_dict.get("per_page", constants.HOME_PAGE_MAX_NEWS)
     category_id = args_dict.get("cid", '1')
 
