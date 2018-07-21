@@ -1,8 +1,9 @@
 from info import constants
 from info.models import User, News, Category
+from info.utils.common import func_out
 from info.utils.response_code import RET
 from . import index_blu
-from flask import render_template, current_app, session, request, jsonify
+from flask import render_template, current_app, session, request, jsonify, g
 
 
 # 新闻列表
@@ -62,16 +63,17 @@ def get_news_list():
 
 # 根路由
 @index_blu.route('/')
+@func_out
 def index():
-    # 获取到当前登录用户的id
-    user_id = session.get("user_id")
-    # 通过id获取用户信息
-    user = None
-    if user_id:
-        try:
-            user = User.query.get(user_id)
-        except Exception as e:
-            current_app.logger.error(e)
+    # # 获取到当前登录用户的id
+    # user_id = session.get("user_id")
+    # # 通过id获取用户信息
+    # user = None
+    # if user_id:
+    #     try:
+    #         user = User.query.get(user_id)
+    #     except Exception as e:
+    #         current_app.logger.error(e)
 
     # 获取点击排行数据
     news_list = None
@@ -99,7 +101,7 @@ def index():
         categories_dicts.append(b.to_dict())
 
     data = {
-        "user_info": user.to_dict() if user else None,
+        "user_info": g.user.to_dict() if g.user else None,
         "click_news_list": click_news_list,
         "categories": categories_dicts
     }
