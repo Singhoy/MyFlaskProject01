@@ -41,23 +41,40 @@ $(function () {
         // 页面滚动了多少,这个是随着页面滚动实时变化的
         var nowScroll = $(document).scrollTop();
 
+        // 判断页数，去更新新闻数据
         if ((canScrollHeight - nowScroll) < 100) {
-            // TODO 判断页数，去更新新闻数据
+            // 将“是否正在向后端查询新闻数据”的标志设置为真
+            house_data_querying = true;
+            // 如果当前页面数还没达到总页数
+            if (cur_page < total_page) {
+                // 向后端发送请求，查询下一页新闻数据
+                updateNewsData();
+            } else {
+                house_data_querying = false
+            }
         }
     })
-})
+});
 
 function updateNewsData() {
-    // TODO 更新新闻数据
+    // 更新新闻数据
     const params = {
         "page": 1,
         "cid": currentCid,
         'per_page': 10
     };
     $.get("/news_list", params, res => {
+        // 设置“数据正在查询数据”变量为false，以便下次上拉加载
+        data_querying = false;
         if (res) {
-            // 先清空原有数据
-            $(".list_con").html('');
+            // 记录总页数
+            total_page = res.totalPage;
+            // 如果当前页数为1，则清空原有的数据
+            if (cur_page == 1) {
+                $(".list_con").html('');
+            }
+            // 当前页数递增
+            cur_page += 1;
             // 显示数据
             for (let i = 0; i < res.newsList.length; i++) {
                 let news = res.newsList[i];
