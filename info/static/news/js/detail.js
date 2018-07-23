@@ -151,14 +151,60 @@ $(function () {
             $(this).parent().toggle();
         }
 
+        // 点赞
         if (sHandler.indexOf('comment_up') >= 0) {
-            var $this = $(this);
+            const t = $(this);
+            let action = "add";
             if (sHandler.indexOf('has_comment_up') >= 0) {
                 // 如果当前该评论已经是点赞状态，再次点击会进行到此代码块内，代表要取消点赞
-                $this.removeClass('has_comment_up')
-            } else {
-                $this.addClass('has_comment_up')
+                action = "remove"
             }
+            const comment_id = t.attr("data-commentid");
+            const news_id = t.attr("data-newsid");
+            const params = {
+                comment_id,
+                action,
+                news_id
+            };
+            $.ajax({
+                url: "/news/comment_like",
+                type: "post",
+                contentType: "application/json",
+                headers: {
+                    "X-CSRFToken": getCookie("csrf_token")
+                },
+                data: JSON.stringify(params)
+            })
+                .done(res => {
+                    if (res.errno == 0) {
+                        let like_count = t.attr('data-likecount');
+
+                        if (like_count == undefined) {
+                            like_count = 0
+                        }
+
+                        // 更新点赞按钮图标
+                        if (action == "add") {
+                            like_count = parseInt(like_count) + 1;
+                            // 代表是点赞
+                            t.addClass('has_comment_up')
+                        } else {
+                            like_count = parseInt(like_count) - 1;
+                            t.removeClass('has_comment_up')
+                        }
+                        // 更新点赞数据
+                        t.attr('data-likecount', like_count)
+                        if (like_count == 0) {
+                            t.html("赞")
+                        }else {
+                            t.html(like_count)
+                        }
+                    } else if (res.errno == 4101) {
+                        $('.login_form_con').show()
+                    } else {
+                        alert(res.errmsg)
+                    }
+                })
         }
 
         // 回复评论
