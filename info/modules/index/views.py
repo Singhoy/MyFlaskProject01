@@ -32,7 +32,7 @@ def get_news_list():
         return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
 
     # 3.查询数据并分页
-    filters = []
+    filters = [News.status == 0]
     # 如果分类id不为1，那么添加分类id的过滤
     if category_id != "1":
         filters.append(News.category_id == category_id)

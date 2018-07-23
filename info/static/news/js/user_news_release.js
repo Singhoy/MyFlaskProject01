@@ -7,12 +7,26 @@ function getCookie(name) {
 $(function () {
 
     $(".release_form").submit(function (e) {
-        e.preventDefault()
+        e.preventDefault();
 
-        // TODO 发布完毕之后需要选中我的发布新闻
-        // // 选中索引为6的左边单菜单
-        // window.parent.fnChangeMenu(6)
-        // // 滚动到顶部
-        // window.parent.scrollTo(0, 0)
+        // 发布新闻
+        // 发布完毕之后需要选中我的发布新闻
+        $(this).ajaxSubmit({
+            url: "/user/news_release",
+            type: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
+            success: res => {
+                if (res.errno == 0) {
+                    // // 选中索引为6的左边单菜单
+                    window.parent.fnChangeMenu(6);
+                    // // 滚动到顶部
+                    window.parent.scrollTo(0, 0)
+                } else {
+                    alert(res.errmsg)
+                }
+            }
+        })
     })
-})
+});
