@@ -1,6 +1,7 @@
 from flask import render_template, session, current_app, g, abort, request, jsonify
 
-from info import constants, db
+from info import db
+from info.constants import CLICK_RANK_MAX_NEWS
 from info.models import News, Comment
 from info.modules.news import news_blu
 from info.utils.common import func_out
@@ -11,7 +12,7 @@ from info.utils.response_code import RET
 # 新闻评论
 @news_blu.route('/news_comment', methods=["POST"])
 @func_out
-def dad_news_comment():
+def news_comment():
     """添加评论"""
 
     user = g.user
@@ -100,9 +101,11 @@ def news_collect():
     return jsonify(errno=RET.OK, errmsg="操作成功")
 
 
+# 新闻详情视图
 @news_blu.route('/<int:news_id>')
 @func_out
 def news_detail(news_id):
+    news = None
     try:
         news = News.query.get(news_id)
     except Exception as e:
@@ -112,19 +115,31 @@ def news_detail(news_id):
     if not news:
         # 返回数据未找到的页面
         abort(404)
-
+    print(news_id,'120l')
     news.clicks += 1
+    db.session.commit()
 
     # 获取点击排行数据
     news_list = None
     try:
-        news_list = News.query.order_by(News.clicks.desc()).limit(constants.CLICK_RANK_MAX_NEWS)
+        news_list = News.query.order_by(News.clicks.desc()).limit(CLICK_RANK_MAX_NEWS)
     except Exception as e:
         current_app.looger.error(e)
 
     click_news_list = []
-    for news in news_list if news_list else []:
-        click_news_list.append(news.to_basic_dict())
+    for news2 in news_list if news_list else []:
+        click_news_list.append(news2.to_basic_dict())
+
+    # 获取当前新闻的评论
+    comments = []
+    try:
+        comments = Comment.query.filter(Comment.news_id == news_id).order_by(Comment.create_time.desc()).all()
+    except Exception as e:
+        current_app.logger.error(e)
+    finally:
+        comment_list = []
+        for i in comments:
+            comment_list.append(i.to_dict())
 
     # 判断是否收藏该新闻，默认为 false
     is_collected = False
@@ -137,7 +152,8 @@ def news_detail(news_id):
         "news": news.to_dict(),
         "click_news_list": click_news_list,
         "is_collected": is_collected,
-        "user_info": g.user.to_dict() if g.user else None
+        "user_info": g.user.to_dict() if g.user else None,
+        "comment_list": comment_list
     }
 
     return render_template('news/detail.html', data=data)
