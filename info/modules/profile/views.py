@@ -8,6 +8,39 @@ from info.utils.response_code import RET
 from . import profile_blu
 
 
+# 修改用户密码
+@profile_blu.route('/pass_info', methods=["GET", "POST"])
+@func_out
+def pass_info():
+    if request.method == "GET":
+        return render_template('news/user_pass_info.html')
+
+    # 1.获取到传入的参数
+    data_dict = request.json
+    ole_password = data_dict.get("old_password")
+    new_password = data_dict.get("new_password")
+
+    if not all([ole_password, new_password]):
+        return jsonify(errno=RET.PARAMERR, errmsg="all参数有误")
+
+    # 2.获取当前登录用户的信息
+    user = g.user
+
+    if not user.check_passowrd(ole_password):
+        return jsonify(errno=RET.PWDERR, errmsg="原密码错误")
+
+    # 更新数据
+    user.password = new_password
+    try:
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="保存数据失败")
+
+    return jsonify(errno=RET.OK, errmsg="保存成功")
+
+
 # 头像上传路由
 @profile_blu.route('/pic_info', methods=["GET", "POST"])
 @func_out
