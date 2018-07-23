@@ -9,6 +9,43 @@ from info.utils.response_code import RET
 from . import profile_blu
 
 
+# 用户新闻列表
+@profile_blu.route('/news_list')
+@func_out
+def news_list():
+    # 获取页数
+    p = request.args.get("p", 1)
+    try:
+        p = int(p)
+    except Exception as e:
+        current_app.logger.error(e)
+        p = 1
+
+    user = g.user
+    news_li = []
+    current_page = 1
+    total_page = 1
+    try:
+        paginate = News.query.filter(News.user_id == user.id).paginate(p, USER_COLLECTION_MAX_NEWS, False)
+        # 获取当前页数据
+        news_li = paginate.items
+        # 获取当前页
+        current_page = paginate.page
+        # 获取总页数
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+
+    news_dict_li = []
+    for news_item in news_li:
+        news_dict_li.append(news_item.to_review_dict())
+    data = {"news_list": news_dict_li,
+            "total_page": total_page,
+            "current_page": current_page}
+
+    return render_template('news/user_news_list.html', data=data)
+
+
 # 发布新闻
 @profile_blu.route('/news_release', methods=["GET", "POST"])
 @func_out
@@ -39,17 +76,17 @@ def news_release():
     # POST 提交,执行发布新闻操作
     # 1.获取要提交的数据
     title = request.form.get("title")
-    print(1,title)
+    print(1, title)
     source = "个人发布"
-    print(2,source)
+    print(2, source)
     digest = request.form.get("digest")
-    print(3,digest)
+    print(3, digest)
     content = request.form.get("content")
-    print(4,content)
+    print(4, content)
     index_image = request.files.get("index_image")
-    print(5,index_image)
+    print(5, index_image)
     category_id = request.form.get("category_id")
-    print(6,category_id)
+    print(6, category_id)
     # 1.1 判断数据是否有值
     if not all([title, source, digest, content, index_image, category_id]):
         return jsonify(errno=RET.PARAMERR, errmsg="all参数有误")
