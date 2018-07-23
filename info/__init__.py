@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask
+from flask import Flask, g, render_template
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect, generate_csrf
@@ -10,6 +10,8 @@ from redis import StrictRedis
 from config import config
 
 # 数据库
+from info.utils.common import func_out
+
 db = SQLAlchemy()
 redis_store = None
 
@@ -78,5 +80,12 @@ def create_app(config_name):
 
     from info.modules.profile import profile_blu
     app.register_blueprint(profile_blu)
+
+    @app.errorhandler(404)
+    @func_out
+    def page_not_fount(_):
+        user = g.user
+        data = {"user_info": user.to_dict() if user else None}
+        return render_template('/news/404.html', data=data)
 
     return app
