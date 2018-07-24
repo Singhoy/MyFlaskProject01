@@ -1,12 +1,95 @@
-from flask import g, redirect, render_template, request, jsonify, current_app, session
+from flask import g, redirect, render_template, request, jsonify, current_app, session, abort
 
 from info import db
-from info.constants import QINIU_DOMIN_PREFIX, USER_COLLECTION_MAX_NEWS, USER_FOLLOWED_MAX_COUNT
-from info.models import Category, News
+from info.constants import QINIU_DOMIN_PREFIX, USER_COLLECTION_MAX_NEWS, USER_FOLLOWED_MAX_COUNT, \
+    OTHER_NEWS_PAGE_MAX_COUNT
+from info.models import Category, News, User
 from info.utils.common import func_out
 from info.utils.image_storage import storage
 from info.utils.response_code import RET
 from . import profile_blu
+
+
+# 其他用户新闻列表
+@profile_blu.route('/other_news_list')
+def other_news_list():
+    # 获取页数
+    p = request.args.get("p", 1)
+    user_id = request.args.get("user_id")
+    try:
+        p = int(p)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg="p参数错误")
+
+    if not all([p, user_id]):
+        return jsonify(errno=RET.PARAMERR, errmsg="all参数错误")
+
+    try:
+        user = User.query.get(user_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据查询错误")
+
+    if not user:
+        return jsonify(errno=RET.NODATA, errmsg="用户不存在")
+
+    try:
+        paginate = News.query.filter(News.user_id == user.id).paginate(p, OTHER_NEWS_PAGE_MAX_COUNT, False)
+        # 获取当前页数据
+        news_li = paginate.items
+        # 获取当前页
+        current_page = paginate.page
+        # 获取总页数
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据查询错误")
+
+    news_dict_li = []
+    for n in news_li:
+        news_dict_li.append(n.to_review_dict())
+
+    data = {"news_list": news_dict_li, "total_page": total_page, "current_page": current_page}
+
+    return jsonify(errno=RET.OK, errmsg="操作成功", data=data)
+
+
+# 其他用户页面
+@profile_blu.route('/other_info')
+def other_info():
+    """查看其他用户信息"""
+    user = g.user
+
+    # 获取其他用户id
+    user_id = request.args.get("id")
+    if not user_id:
+        abort(404)
+
+    # 查询用户模型
+    other = None
+    try:
+        other = User.query.get(user_id)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    if not other:
+        abort(404)
+
+    # 判断当前登录用户是否关注过该用户
+    is_followed = False
+    if user:
+        if other.followers.filter(User.id == user.id).count() > 0:
+            is_followed = True
+
+    # 组织数据，并返回
+    data = {
+        "user_info": user.to_dict(),
+        "other_info": other.to_dict(),
+        "is_followed": is_followed
+    }
+
+    return render_template('news/other.html', data=data)
 
 
 # 我的关注
@@ -21,7 +104,7 @@ def user_follow():
         current_app.logger.error(e)
         p = 1
 
-    user = g.usesr
+    user = g.user
 
     follows = []
     current_page = 1
