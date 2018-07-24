@@ -88,4 +88,5 @@ def create_app(config_name):
         data = {"user_info": user.to_dict() if user else None}
         return render_template('/news/404.html', data=data)
 
+    print(app.url_map)
     return app

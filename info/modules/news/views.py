@@ -2,11 +2,58 @@ from flask import render_template, session, current_app, g, abort, request, json
 
 from info import db
 from info.constants import CLICK_RANK_MAX_NEWS
-from info.models import News, Comment, CommentLike
+from info.models import News, Comment, CommentLike, User
 from info.modules.news import news_blu
 from info.utils.common import func_out
 
 from info.utils.response_code import RET
+
+
+# 关注与取消关注
+@news_blu.route('/followed_user', methods=["POST"])
+@func_out
+def followed_user():
+    """关注/取消关注用户"""
+    user = g.user
+    if not user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+    id_ = request.json.get("user_id")
+    doit = request.json.get("action")
+
+    if not all([id_, doit]):
+        return jsonify(errno=RET.PARAMERR, errmsg="all参数错误")
+
+    if doit not in ("follow", "unfollow"):
+        return jsonify(errno=RET.PARAMERR, errmsg="action参数错误")
+
+    # 查询到关注的用户信息
+    try:
+        target_user = User.query.get(id_)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="查询数据库失败")
+
+    if not target_user:
+        return jsonify(errno=RET.NODATA, errmsg="未查询到用户数据")
+
+    # 根据不同操作做不同逻辑
+    if doit == "follow":
+        if target_user.followers.filter(User.id == user.id).count() > 0:
+            return jsonify(errno=RET.DATAEXIST, errmsg="当前已关注")
+        target_user.followers.append(user)
+    else:
+        if target_user.followers.filter(User.id == user.id).count() > 0:
+            target_user.followers.remove(user)
+
+    # 保存到数据库
+    try:
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据保存错误")
+
+    return jsonify(errno=RET.OK, errmsg="操作成功")
 
 
 # 点赞路由
@@ -202,7 +249,9 @@ def news_detail(news_id):
             comment_ids = [comment.id for comment in comments]
             if len(comment_ids) > 0:
                 # 取到当前用户在当前新闻的所有评论点赞的记录
-                comment_likes = CommentLike.query.filter(CommentLike.comment_id.in_(comment_ids), CommentLike.user_id == g.user.id).all()
+                comment_likes = CommentLike.query.filter(
+                    CommentLike.comment_id.in_(comment_ids),
+                    CommentLike.user_id == g.user.id).all()
                 # 取出记录中所有的评论id
                 comment_like_ids = [comment_like.comment_id for comment_like in comment_likes]
         except Exception as e:
@@ -217,19 +266,24 @@ def news_detail(news_id):
             comment_dict["is_like"] = True
         comment_list.append(comment_dict)
 
+    # 当前登录用户是否关注当前新闻作者
+    is_followed = False
     # 判断是否收藏该新闻，默认为 false
     is_collected = False
     # 判断用户是否收藏过该新闻
     if g.user:
         if news in g.user.collection_news:
             is_collected = True
+        if g.user.followers.filter(User.id == g.user.id).count() > 0:
+            is_followed = True
 
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
         "is_collected": is_collected,
         "user_info": g.user.to_dict() if g.user else None,
-        "comment_list": comment_list
+        "comment_list": comment_list,
+        "is_followed": is_followed
     }
 
     return render_template('news/detail.html', data=data)

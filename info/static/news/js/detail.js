@@ -196,7 +196,7 @@ $(function () {
                         t.attr('data-likecount', like_count)
                         if (like_count == 0) {
                             t.html("赞")
-                        }else {
+                        } else {
                             t.html(like_count)
                         }
                     } else if (res.errno == 4101) {
@@ -288,11 +288,72 @@ $(function () {
 
 // 关注当前新闻作者
     $(".focus").click(function () {
-
-    })
+        const user_id = $(this).attr('data-userid');
+        const params = {
+            "action": "follow",
+            user_id
+        };
+        $.ajax({
+            url: "/news/followed_user",
+            type: "post",
+            contentType: "application/json",
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
+            data: JSON.stringify(params)
+        })
+            .done(res => {
+                if (res.errno == 0) {
+                    // 关注成功
+                    let count = parseInt($(".follows b").html());
+                    count++;
+                    $(".follows b").html(count + "");
+                    $(".focus").hide();
+                    $(".focused").show()
+                } else if (res.errno == 4101) {
+                    // 未登录,弹出登录框
+                    $('.login_form_con').show()
+                } else {
+                    // 关注失败
+                    alert(res.errmsg)
+                }
+            })
+            .fail(() =>{
+                alert(JSON.stringify(params))
+            })
+    });
 
 // 取消关注当前新闻作者
     $(".focused").click(function () {
-
+        const user_id = $(this).attr('data-userid');
+        const params = {
+            "action": "unfollow",
+            user_id
+        };
+        $.ajax({
+            url: "/news/followed_user",
+            type: "post",
+            contentType: "application/json",
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
+            data: JSON.stringify(params)
+        })
+            .done(res => {
+                if (res.errno == 0) {
+                    // 取消关注成
+                    let count = parseInt($(".follows b").html());
+                    count--;
+                    $(".follows b").html(count + "");
+                    $(".focus").show();
+                    $(".focused").hide()
+                } else if (res.errno == 4101) {
+                    // 未登录,弹出登录框
+                    $('.login_form_con').show()
+                } else {
+                    // 取消关注失败
+                    alert(res.errmsg)
+                }
+            })
     })
-})
+});
