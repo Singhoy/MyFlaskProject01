@@ -199,17 +199,11 @@ def news_release():
     # POST 提交,执行发布新闻操作
     # 1.获取要提交的数据
     title = request.form.get("title")
-    print(1, title)
     source = "个人发布"
-    print(2, source)
     digest = request.form.get("digest")
-    print(3, digest)
     content = request.form.get("content")
-    print(4, content)
     index_image = request.files.get("index_image")
-    print(5, index_image)
     category_id = request.form.get("category_id")
-    print(6, category_id)
     # 1.1 判断数据是否有值
     if not all([title, source, digest, content, index_image, category_id]):
         return jsonify(errno=RET.PARAMERR, errmsg="all参数有误")

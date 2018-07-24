@@ -214,7 +214,7 @@ def send_sms():
     if result != 0:
         # 发送短信失败
         return jsonify(errno=RET.THIRDERR, errmsg="发送短信失败")
-    print(sms_code)
+    # print(sms_code)
 
     # 6.redis中保存短信验证码内容
     try:
