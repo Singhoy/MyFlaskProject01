@@ -1,12 +1,20 @@
-from flask import render_template, request, current_app, session
+from flask import render_template, request, current_app, session, g, redirect, url_for
 
 from info.models import User
+from info.utils.common import func_out
 from . import admin_blu
 
 
+# 管理员登录
 @admin_blu.route('/login', methods=["GET", "POST"])
 def admin_login():
     if request.method == "GET":
+        # 取session中取指定的值
+        user_id = session.get("user_id", None)
+        is_admin = session.get("is_admin", False)
+        # 如果用户id存在，并且是管理员，那么直接跳转管理后台主页
+        if user_id and is_admin:
+            return redirect(url_for('admin.admin_index'))
         return render_template('admin/login.html')
 
     # 获取到登录的参数
@@ -36,5 +44,13 @@ def admin_login():
     session["mobile"] = user.mobile
     session["is_admin"] = True
 
-    # TODO 跳转到后台管理主页，暂未实现
-    return "登录成功，需要跳转到主页"
+    # 跳转到后台管理主页
+    return redirect(url_for('admin.admin_index'))
+
+
+# 管理后台主页
+@admin_blu.route('/index')
+@func_out
+def admin_index():
+    user = g.user
+    return render_template('admin/index.html', user=user.to_dict())
