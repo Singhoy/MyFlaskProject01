@@ -21,6 +21,7 @@ def logout():
     session.pop('user_id', None)
     session.pop('nick_name', None)
     session.pop('mobile', None)
+    session.pop('is_admin', None)
 
     # 返回结果
     return jsonify(errno=RET.OK, errmsg="退出")
@@ -208,11 +209,11 @@ def send_sms():
     # 5.生成发送短信的内容并发送短信
     result = random.randint(0, 9999)
     sms_code = "%04d" % result
-    # current_app.logger.debug("短信验证码的内容：%s" % sms_code)
-    # result = CCP().send_template_sms(mobile, [sms_code, constants.SMS_CODE_REDIS_EXPIRES / 60], 1)
-    # if result != 0:
-    #     # 发送短信失败
-    #     return jsonify(errno=RET.THIRDERR, errmsg="发送短信失败")
+    current_app.logger.debug("短信验证码的内容：%s" % sms_code)
+    result = CCP().send_template_sms(mobile, [sms_code, constants.SMS_CODE_REDIS_EXPIRES / 60], 1)
+    if result != 0:
+        # 发送短信失败
+        return jsonify(errno=RET.THIRDERR, errmsg="发送短信失败")
     print(sms_code)
 
     # 6.redis中保存短信验证码内容
