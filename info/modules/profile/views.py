@@ -1,12 +1,52 @@
 from flask import g, redirect, render_template, request, jsonify, current_app, session
 
 from info import db
-from info.constants import QINIU_DOMIN_PREFIX, USER_COLLECTION_MAX_NEWS
+from info.constants import QINIU_DOMIN_PREFIX, USER_COLLECTION_MAX_NEWS, USER_FOLLOWED_MAX_COUNT
 from info.models import Category, News
 from info.utils.common import func_out
 from info.utils.image_storage import storage
 from info.utils.response_code import RET
 from . import profile_blu
+
+
+# 我的关注
+@profile_blu.route('/user_follow')
+@func_out
+def user_follow():
+    # 获取页数
+    p = request.args.get("p", 1)
+    try:
+        p = int(p)
+    except Exception as e:
+        current_app.logger.error(e)
+        p = 1
+
+    user = g.usesr
+
+    follows = []
+    current_page = 1
+    total_page = 1
+    try:
+        paginate = user.followed.paginate(p, USER_FOLLOWED_MAX_COUNT, False)
+        # 获取当前页数据
+        follows = paginate.items
+        # 获取当前页
+        current_page = paginate.page
+        # 获取总页数
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+
+    user_dict_li = []
+
+    for fo in follows:
+        user_dict_li.append(fo.to_dict())
+
+    data = {"users": user_dict_li,
+            "total_page": total_page,
+            "current_page": current_page}
+
+    return render_template('news/user_follow.html', data=data)
 
 
 # 用户新闻列表
