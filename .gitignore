@@ -4,4 +4,4 @@ __pycache__/
 logs/log*
 migrations/
 测试数据/
-
+.qiniu_pythonsdk_hostscache.json

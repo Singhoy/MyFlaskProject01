@@ -81,6 +81,9 @@ def create_app(config_name):
     from info.modules.profile import profile_blu
     app.register_blueprint(profile_blu)
 
+    from info.modules.admin import admin_blu
+    app.register_blueprint(admin_blu)
+
     @app.errorhandler(404)
     @func_out
     def page_not_fount(_):
