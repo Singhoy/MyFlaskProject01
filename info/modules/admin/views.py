@@ -4,9 +4,10 @@ from datetime import datetime, timedelta
 from flask import render_template, request, current_app, session, g, redirect, url_for, jsonify
 
 from info import db
-from info.constants import ADMIN_USER_PAGE_MAX_COUNT
-from info.models import User, News
+from info.constants import ADMIN_USER_PAGE_MAX_COUNT, ADMIN_NEWS_PAGE_MAX_COUNT, QINIU_DOMIN_PREFIX
+from info.models import User, News, Category
 from info.utils.common import func_out
+from info.utils.image_storage import storage
 from info.utils.response_code import RET
 from . import admin_blu
 
@@ -284,3 +285,143 @@ def news_review_detail():
         return jsonify(errno=RET.DBERR, errmsg="数据保存失败")
 
     return jsonify(errno=RET.OK, errmsg="操作成功")
+
+
+# 新闻版式编辑
+@admin_blu.route('/news_edit')
+def news_edit():
+    """返回新闻列表"""
+
+    page = request.args.get("p", 1)
+    keywords = request.args.get("keywords", "")
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        page = 1
+
+    news_list = []
+    current_page = 1
+    total_page = 1
+
+    try:
+        filters = []
+        # 如果有关键词
+        if keywords:
+            # 添加关键词的检索选项
+            filters.append(News.title.contains(keywords))
+
+        # 查询
+        paginate = News.query.filter(*filters) \
+            .order_by(News.create_time.desc()) \
+            .paginate(page, ADMIN_NEWS_PAGE_MAX_COUNT, False)
+
+        news_list = paginate.items
+        current_page = paginate.page
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+
+    news_dict_list = []
+    for news in news_list:
+        news_dict_list.append(news.to_basic_dict())
+
+    context = {"total_page": total_page,
+               "current_page": current_page,
+               "news_list": news_dict_list}
+
+    return render_template('admin/news_edit.html', data=context)
+
+
+# 新闻编辑详情
+@admin_blu.route('/news_edit_detail', methods=["GET", "POST"])
+def news_edit_detail():
+    """新闻编辑详情"""
+
+    if request.method == "GET":
+        # 获取参数
+        news_id = request.args.get("news_id")
+
+        if not news_id:
+            return render_template('admin/news_edit_detail.html', data={"errmsg": "未查询到此新闻id"})
+
+        # 查询新闻
+        news = None
+        try:
+            news = News.query.get(news_id)
+        except Exception as e:
+            current_app.logger.error(e)
+
+            # if not news:
+            return render_template('admin/news_edit_detail.html', data={"errms": "未查询到此新闻"})
+
+        # 查询废了的数据
+        categories = Category.query.all()
+        categories_li = []
+        for c in categories:
+            c_dict = c.to_dict()
+            c_dict["is_selected"] = False
+            if c.id == news.category_id:
+                c_dict["is_selected"] = True
+            categories_li.append(c_dict)
+        # 移除'最新'分类
+        categories_li.pop(0)
+
+        data = {
+            "news": news.to_dict(),
+            "categories": categories_li
+        }
+
+        return render_template('admin/news_edit_detail.html', data=data)
+
+    news_id = request.form.get("news_id")
+    title = request.form.get("title")
+    digest = request.form.get("digest")
+    content = request.form.get("content")
+    index_image = request.files.get("index_image")
+    category_id = request.form.get("category_id")
+
+    # 1.1判断数据是否有值
+    if not all([title, digest, content, category_id]):
+        return jsonify(errno=RET.PARAMERR, errmsg="all参数有误")
+
+    news = None
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        # if not news:
+        return jsonify(errno=RET.NODATA, errmsg="未查询到新闻数据")
+
+    # 1.2尝试读取图片
+    if index_image:
+        try:
+            index_image = index_image.read()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.PARAMERR, errmsg="图片参数有误")
+
+        # 2.将标题图片上传到七牛云
+        try:
+            key = storage(index_image)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.THIRDERR, errmsg="上传图片错误")
+        news.index_image_url = QINIU_DOMIN_PREFIX + key
+
+    # 3.设置相关数据
+    news.title = title
+    news.digest = digest
+    news.content = content
+    news.category_id = category_id
+
+    # 4.保存到数据库
+    try:
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="保存数据失败")
+
+    # 5.返回结果
+    return jsonify(errno=RET.OK, errmsg="编辑成功")
