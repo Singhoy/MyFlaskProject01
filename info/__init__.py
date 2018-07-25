@@ -9,9 +9,9 @@ from redis import StrictRedis
 
 from config import config
 
-# 数据库
 from info.utils.common import func_out
 
+# 数据库
 db = SQLAlchemy()
 redis_store = None
 
@@ -65,7 +65,7 @@ def create_app(config_name):
     Session(app)
 
     # 添加自定义过滤器
-    from info.utils.htmlfilter import do_index_class
+    from info.utils.common import do_index_class
     app.add_template_filter(do_index_class, "indexClass")
 
     # 注册蓝图
@@ -84,6 +84,7 @@ def create_app(config_name):
     from info.modules.admin import admin_blu
     app.register_blueprint(admin_blu)
 
+    # 错误页面
     @app.errorhandler(404)
     @func_out
     def page_not_fount(_):

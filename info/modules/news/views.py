@@ -1,4 +1,4 @@
-from flask import render_template, session, current_app, g, abort, request, jsonify
+from flask import render_template, current_app, g, abort, request, jsonify
 
 from info import db
 from info.constants import CLICK_RANK_MAX_NEWS

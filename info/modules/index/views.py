@@ -1,5 +1,5 @@
 from info import constants
-from info.models import User, News, Category
+from info.models import News, Category
 from info.utils.common import func_out
 from info.utils.response_code import RET
 from . import index_blu

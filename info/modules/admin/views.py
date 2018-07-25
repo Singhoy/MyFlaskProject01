@@ -12,6 +12,18 @@ from info.utils.response_code import RET
 from . import admin_blu
 
 
+# 管理员退出
+@admin_blu.route('/logout')
+def logout():
+    session.pop('user_id')
+    session.pop('nick_name')
+    try:
+        session.pop('is_admin')
+    except Exception as e:
+        current_app.logger.error(e)
+    return jsonify(errno=0)
+
+
 # 管理员登录
 @admin_blu.route('/login', methods=["GET", "POST"])
 def admin_login():
@@ -148,9 +160,9 @@ def user_list():
 
     # 查询数据
     try:
-        paginate = User.query.filter(User.is_admin == False).order_by(User.last_login.desc()).paginate(page,
-                                                                                                       ADMIN_USER_PAGE_MAX_COUNT,
-                                                                                                       False)
+        paginate = User.query.filter(User.is_admin == False) \
+            .order_by(User.last_login.desc()) \
+            .paginate(page, ADMIN_USER_PAGE_MAX_COUNT, False)
         users = paginate.items
         current_page = paginate.page
         total_page = paginate.pages
@@ -252,7 +264,7 @@ def news_review_detail():
     # 2.判断参数
     if not all([_id, action]):
         return jsonify(errno=RET.PARAMERR, errmsg="all参数错误")
-    if action not in ("accetp", "reject"):
+    if action not in ("accept", "reject"):
         return jsonify(errno=RET.PARAMERR, errmsg="action参数错误")
 
     news = None
